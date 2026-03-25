@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d D:/Dev/codeProject/java/**)",
+      "Bash(mvn clean:*)"
+    ]
+  }
+}

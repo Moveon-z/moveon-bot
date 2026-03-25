@@ -1,0 +1,47 @@
+# Moveon Bot - AI Personal Assistant
+# Local Development Configuration
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # PostgreSQL configuration for local development
+  datasource:
+    url: jdbc:postgresql://localhost:5432/moveon
+    username: moveon
+    password: moveon
+    driver-class-name: org.postgresql.Driver
+
+  # Redis configuration for local development
+  data:
+    redis:
+      url: redis://localhost:6379
+
+# MinIO configuration for local development
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket: moveon-documents
+
+# Logging - more verbose for development
+logging:
+  level:
+    root: INFO
+    com.moveon: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# AI configuration for local development
+ai:
+  api-key: ${AI_API_KEY:}
+  model-provider: ${AI_MODEL_PROVIDER:aliyun}
+  embedding-model: ${AI_EMBEDDING_MODEL:ali-text-embedding}
+
+# JWT configuration for local development
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-change-in-production}
+  expiration-ms: 1800000  # 30 minutes
+  refresh-expiration-ms: 604800000  # 7 days

@@ -1,0 +1,3 @@
+org.apache.maven.shared.filtering.DefaultMavenFileFilter
+org.apache.maven.shared.filtering.DefaultMavenReaderFilter
+org.apache.maven.shared.filtering.DefaultMavenResourcesFiltering
