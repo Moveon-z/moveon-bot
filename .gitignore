@@ -49,3 +49,6 @@ buildNumber.properties
 ### System Files ###
 .DS_Store
 Thumbs.db
+
+### Local Maven Repo ###
+.m2-temp-repo/

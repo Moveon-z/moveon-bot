@@ -155,9 +155,95 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ---
 
+## 阶段 2：本地依赖环境搭建 - ✅ 已完成
+
+**完成日期**: 2026-03-25
+
+### 完成的工作
+
+#### 2.1 准备本地容器编排文件
+
+- [x] 创建 Docker Compose 配置文件
+- [x] 配置 PostgreSQL (pgvector/pgvector:pg16)
+- [x] 配置 Redis (redis:7-alpine)
+- [x] 配置 MinIO (minio/minio:latest)
+- [x] 配置数据卷持久化
+- [x] 配置健康检查
+
+**验证结果**:
+```bash
+# 所有容器健康状态
+moveon-postgres   Up 34 seconds (healthy)
+moveon-redis      Up 34 seconds (healthy)
+moveon-minio      Up 34 seconds (healthy)
+```
+
+#### 2.2 初始化 PostgreSQL 与 pgvector
+
+- [x] 启用 pgvector 扩展
+- [x] 创建数据库初始化脚本
+- [x] 验证扩展安装
+
+**验证结果**:
+```bash
+# pgvector 扩展版本
+vector  | 0.8.2   | public
+
+# 数据库连接验证
+POSTGRES_URL: jdbc:postgresql://localhost:5432/moveon
+POSTGRES_USER: moveon
+POSTGRES_PASSWORD: moveon
+```
+
+#### 2.3 验证 Redis 与 MinIO 可用性
+
+- [x] 验证 Redis 连接
+- [x] 验证 Redis 读写
+- [x] 验证 MinIO 健康检查
+- [x] 验证 MinIO Console 访问
+
+**验证结果**:
+```bash
+# Redis ping
+PONG
+
+# Redis 读写测试
+SET test_key "Hello Moveon" -> OK
+GET test_key -> "Hello Moveon"
+
+# MinIO 健康检查
+HTTP 200
+
+# MinIO Console
+http://localhost:9001
+```
+
+### 验证测试
+
+**Docker 容器状态**:
+```bash
+docker-compose ps
+# 所有服务状态：healthy
+```
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+```
+
+### 下一步
+
+阶段 3：基础应用骨架与通用能力
+- 增强健康检查接口（集成数据库、缓存、存储检查）
+- 建立统一异常处理机制
+- 建立基础日志规范
+- 建立 API 文档机制
+
+---
+
 ## 待办
 
-- [ ] 阶段 2：本地依赖环境搭建
 - [ ] 阶段 3：基础应用骨架与通用能力
 - [ ] 阶段 4：用户认证与权限基础
 - [ ] 阶段 5：文档上传与存储
