@@ -242,9 +242,130 @@ mvn test
 
 ---
 
+## 阶段 3：基础应用骨架与通用能力 - ✅ 已完成
+
+**完成日期**: 2026-03-26
+
+### 完成的工作
+
+#### 3.1 增强健康检查接口
+
+- [x] 创建 `HealthCheckService` 服务类
+- [x] 实现数据库连接检查（使用 JdbcTemplate）
+- [x] 实现 Redis 连接检查（读写测试）
+- [x] 实现 MinIO 连接检查（存储桶存在性验证）
+- [x] 增强 `HealthController` 添加详细健康检查端点 `/health/detailed`
+- [x] 创建 `InfraConfig` 配置类（MinIO Client 和 Redis Template）
+
+**健康检查响应示例**:
+```json
+{
+  "code": 200,
+  "message": "Success",
+  "data": {
+    "status": "UP",
+    "timestamp": "2026-03-26T01:25:24.738Z",
+    "application": "moveon-bot",
+    "version": "0.0.1-SNAPSHOT",
+    "dependencies": {
+      "database": {"status": "UP", "message": "Database connection successful"},
+      "redis": {"status": "UP", "message": "Redis connection successful"},
+      "minio": {"status": "UP", "bucket": "moveon-documents", "bucketExists": true}
+    }
+  }
+}
+```
+
+#### 3.2 建立统一异常处理机制
+
+- [x] 已有 `GlobalExceptionHandler` 处理所有异常类型
+- [x] 已有 `ErrorResponse` 统一错误响应结构
+- [x] 已有业务异常类：`BusinessException`, `ResourceNotFoundException`, `InvalidArgumentException`
+- [x] 处理的异常类型包括：
+  - `NoResourceFoundException` → 404
+  - `InvalidArgumentException` → 400
+  - `ResourceNotFoundException` → 404
+  - `BusinessException` → 400
+  - `BadCredentialsException` → 401
+  - `AccessDeniedException` → 403
+  - `MethodArgumentNotValidException` → 400 (验证错误)
+  - `Exception` → 500 (通用异常)
+
+#### 3.3 建立基础日志规范
+
+- [x] 创建 `RequestLoggingFilter` 记录 HTTP 请求/响应
+- [x] 日志包含：请求方法、路径、状态码、耗时、请求体、响应体
+- [x] 日志脱敏：请求/响应体超过 500 字符自动截断
+- [x] 跳过静态资源和健康检查接口的日志记录
+- [x] 更新 `application.yml` 日志配置：
+  - 根级别：INFO
+  - com.moveon: DEBUG
+  - Hibernate SQL: DEBUG
+  - Hibernate 参数绑定：TRACE
+
+**日志输出示例**:
+```
+2026-03-26 09:25:24.763 [main] INFO  c.m.i.config.RequestLoggingFilter - HTTP GET /health - Status: 200 - Duration: 36ms - Request:  - Response: {"code":200,...}
+```
+
+#### 3.4 建立 API 文档机制
+
+- [x] 已有 `OpenApiConfig` 配置类
+- [x] Swagger UI 访问地址：`/api/swagger-ui.html`
+- [x] API 文档路径：`/api/v3/api-docs`
+- [x] 健康检查接口已添加 OpenAPI 注解
+- [x] 使用 `@Tag` 和 `@Operation` 注解描述接口
+
+### 创建的代码
+
+**新增服务**:
+- `HealthCheckService.java` - 健康检查服务
+
+**新增配置**:
+- `InfraConfig.java` - MinIO 和 Redis 配置
+- `RequestLoggingFilter.java` - HTTP 请求日志过滤器
+
+**增强的类**:
+- `HealthController.java` - 添加详细健康检查端点
+- `HealthControllerTest.java` - 添加详细健康检查测试
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+```
+
+**健康检查验证**:
+```bash
+# 基础健康检查
+curl http://localhost:8080/api/health
+
+# 详细健康检查
+curl http://localhost:8080/api/health/detailed
+```
+
+**API 文档验证**:
+```bash
+# Swagger UI
+http://localhost:8080/api/swagger-ui.html
+
+# API Docs
+http://localhost:8080/api/v3/api-docs
+```
+
+### 下一步
+
+阶段 4：用户认证与权限基础
+- 实现用户实体与基础表结构
+- 实现登录能力与令牌签发
+- 实现受保护接口鉴权
+
+---
+
 ## 待办
 
-- [ ] 阶段 3：基础应用骨架与通用能力
 - [ ] 阶段 4：用户认证与权限基础
 - [ ] 阶段 5：文档上传与存储
 - [ ] 阶段 6：文档解析与内容入库
