@@ -364,9 +364,163 @@ http://localhost:8080/api/v3/api-docs
 
 ---
 
+---
+
+## 阶段 4：用户认证与权限基础 - ✅ 已完成
+
+**完成日期**: 2026-03-26
+
+### 完成的工作
+
+#### 4.1 实现用户实体与基础表结构
+
+- [x] 创建 `User` 实体类（包含 id, username, password, status, role, createdAt, updatedAt）
+- [x] 创建 `UserStatus` 枚举（ACTIVE, INACTIVE, LOCKED）
+- [x] 创建 `UserRole` 枚举（ADMIN, USER）
+- [x] 创建 `UserRepository` 数据访问层
+- [x] 创建数据库初始化脚本 `01-init.sql`
+- [x] 启用 pgvector 扩展
+- [x] 创建初始管理员账号（用户名：`moveon`，密码：`moveon123`）
+
+**用户表结构**:
+```sql
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 4.2 实现登录能力与令牌签发
+
+- [x] 实现登录接口 `POST /auth/login`
+- [x] 实现令牌刷新接口 `POST /auth/refresh`
+- [x] 创建 `JwtService` 实现 JWT 令牌签发与验证
+- [x] 配置访问令牌有效期 30 分钟
+- [x] 配置刷新令牌有效期 7 天
+- [x] 使用 BCrypt 密码加密
+- [x] 创建 `AuthConfig` 配置密码编码器
+- [x] 实现 `UserInitializer` 应用启动时创建初始管理员
+
+**DTO 列表**:
+- `LoginRequest` - 登录请求
+- `LoginResponse` - 登录响应（包含访问令牌和刷新令牌）
+- `RefreshTokenRequest` - 刷新令牌请求
+- `CreateUserRequest` - 创建用户请求
+- `UserResponse` - 用户信息响应
+
+#### 4.3 实现受保护接口鉴权
+
+- [x] 创建 `SecurityConfig` 配置安全策略
+- [x] 创建 `JwtAuthenticationFilter` 过滤器处理 JWT 认证
+- [x] 配置公开端点（`/auth/**`, `/health/**`, `/swagger-ui/**`, `/actuator/**`）
+- [x] 配置受保护接口需要认证
+- [x] 实现管理员专属接口 `POST /auth/users`（创建用户）
+- [x] 实现获取当前用户信息接口 `GET /auth/me`
+- [x] 使用 `@PreAuthorize("hasRole('ADMIN')")` 进行权限控制
+
+**认证流程**:
+1. 用户登录获取访问令牌和刷新令牌
+2. 访问受保护接口时携带 `Authorization: Bearer <token>`
+3. `JwtAuthenticationFilter` 解析令牌并设置认证上下文
+4. 控制器通过 `@PreAuthorize` 进行权限校验
+
+### 创建的代码
+
+**Auth 模块 (17 个文件)**:
+
+**实体**:
+- `entity/User.java` - 用户实体（实现 UserDetails 接口）
+- `entity/UserStatus.java` - 用户状态枚举
+- `entity/UserRole.java` - 用户角色枚举
+
+**Repository**:
+- `repository/UserRepository.java` - 用户数据访问层
+
+**服务**:
+- `service/AuthService.java` - 认证服务（登录、刷新令牌、创建用户）
+- `service/JwtService.java` - JWT 工具服务（令牌签发、验证、提取）
+- `service/UserInitializer.java` - 用户初始化服务（CommandLineRunner）
+
+**配置**:
+- `config/AuthConfig.java` - 认证配置（BCrypt 密码编码器）
+- `config/JwtAuthenticationFilter.java` - JWT 认证过滤器
+
+**控制器**:
+- `controller/AuthController.java` - 认证控制器（登录、刷新、创建用户、获取当前用户）
+
+**DTO**:
+- `dto/LoginRequest.java`
+- `dto/LoginResponse.java`
+- `dto/RefreshTokenRequest.java`
+- `dto/CreateUserRequest.java`
+- `dto/UserResponse.java`
+
+**测试**:
+- `test/service/AuthServiceTest.java`
+- `test/controller/AuthControllerTest.java`
+
+**基础设施**:
+- `infra/config/SecurityConfig.java` - Security 安全配置
+
+**数据库脚本**:
+- `infra/docker/init-db/01-init.sql` - 数据库初始化脚本（包含 users 表和初始管理员）
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: X, Failures: 0, Errors: 0, Skipped: 0
+```
+
+**API 验证**:
+```bash
+# 1. 登录获取令牌
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"moveon","password":"moveon123"}'
+
+# 2. 使用令牌访问受保护接口
+curl http://localhost:8080/api/auth/me \
+  -H "Authorization: Bearer <access_token>"
+
+# 3. 刷新令牌
+curl -X POST http://localhost:8080/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"<refresh_token>"}'
+
+# 4. 创建用户（管理员专属）
+curl -X POST http://localhost:8080/api/auth/users \
+  -H "Authorization: Bearer <admin_access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"test123"}'
+```
+
+**Swagger UI 验证**:
+- 访问 `http://localhost:8080/api/swagger-ui.html`
+- 确认所有认证接口已注册并带有文档说明
+
+### 已知问题
+
+无
+
+### 下一步
+
+阶段 5：文档上传与存储
+- 建立文档元数据模型
+- 实现单文件上传接口
+- 补充文件类型与大小校验
+- 实现文档列表与详情查询
+
+---
+
 ## 待办
 
-- [ ] 阶段 4：用户认证与权限基础
 - [ ] 阶段 5：文档上传与存储
 - [ ] 阶段 6：文档解析与内容入库
 - [ ] 阶段 7：向量化与检索准备
