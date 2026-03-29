@@ -25,6 +25,15 @@ minio:
   secret-key: minioadmin
   bucket: moveon-documents
 
+# JPA configuration for local development
+spring.jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: true
+  properties:
+    hibernate:
+      format_sql: true
+
 # Logging - more verbose for development
 logging:
   level:
@@ -38,7 +47,8 @@ logging:
 ai:
   api-key: ${AI_API_KEY:}
   model-provider: ${AI_MODEL_PROVIDER:aliyun}
-  embedding-model: ${AI_EMBEDDING_MODEL:ali-text-embedding}
+  base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+  embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-v2}
 
 # JWT configuration for local development
 jwt:

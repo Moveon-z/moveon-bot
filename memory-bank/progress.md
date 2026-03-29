@@ -519,11 +519,342 @@ curl -X POST http://localhost:8080/api/auth/users \
 
 ---
 
+## 阶段 5：文档上传与存储 - ✅ 已完成
+
+**完成日期**: 2026-03-26
+
+### 完成的工作
+
+#### 5.1 建立文档元数据模型
+
+- [x] 创建 `Document` 实体类（包含 id, userId, fileName, originalFilename, fileType, mimeType, fileSize, storagePath, status 等字段）
+- [x] 创建 `DocumentStatus` 枚举（PENDING, PARSING, PARSED, EMBEDDING, COMPLETED, FAILED）
+- [x] 创建 `DocumentType` 枚举（TXT, PDF, DOCX, XLSX, PPTX, IMAGE, OTHER）
+- [x] 创建 `DocumentRepository` 数据访问层
+- [x] 更新数据库初始化脚本 `01-init.sql`
+- [x] 创建文档表索引（user_id, status, created_at, file_type）
+
+**文档表结构**:
+```sql
+CREATE TABLE documents (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_type VARCHAR(20) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+    storage_path VARCHAR(500) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    error_message VARCHAR(1000),
+    summary VARCHAR(2000),
+    parsed_at TIMESTAMP,
+    embedded_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_documents_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+#### 5.2 实现单文件上传接口
+
+- [x] 创建 `DocumentService` 服务类
+- [x] 实现 MinIO 文件上传逻辑
+- [x] 实现文件存储路径生成：`{userId}/{date}/{timestamp}-{filename}`
+- [x] 实现文档元数据持久化
+- [x] 创建 `DocumentController` 控制器
+- [x] 实现上传接口 `POST /api/documents/upload`
+
+#### 5.3 补充文件类型与大小校验
+
+- [x] 实现文件类型校验（仅支持 TXT, PDF, DOCX）
+- [x] 实现文件大小校验（最大 50MB）
+- [x] 实现文件扩展名检查
+- [x] 实现 MIME 类型检查（记录日志）
+- [x] 统一错误响应格式
+
+#### 5.4 实现文档列表与详情查询
+
+- [x] 实现文档列表接口 `GET /api/documents`（支持分页、状态筛选、排序）
+- [x] 实现文档详情接口 `GET /api/documents/{id}`
+- [x] 实现用户隔离（只能查询自己的文档）
+- [x] 创建 `DocumentResponse` 和 `DocumentUploadResponse` DTO
+
+### 创建的代码
+
+**Document 模块 (12 个文件)**:
+
+**实体**:
+- `entity/Document.java` - 文档实体
+- `entity/DocumentStatus.java` - 文档状态枚举
+- `entity/DocumentType.java` - 文档类型枚举
+
+**Repository**:
+- `repository/DocumentRepository.java` - 文档数据访问层
+
+**服务**:
+- `service/DocumentService.java` - 文档服务
+
+**控制器**:
+- `controller/DocumentController.java` - 文档控制器
+
+**DTO**:
+- `dto/DocumentResponse.java` - 文档信息响应
+- `dto/DocumentUploadResponse.java` - 文档上传响应
+
+**配置**:
+- 删除了重复的 `DocumentConfig.java`（使用 `InfraConfig` 中的 MinioClient）
+
+**数据库脚本**:
+- `infra/docker/init-db/01-init.sql` - 添加 documents 表
+
+**测试**:
+- `test/java/com/moveon/infra/controller/HealthControllerTest.java` - 修复测试（添加 MockBean）
+
+### 配置更新
+
+**application.yml**:
+- 添加文件上传大小限制：`max-file-size: 50MB`, `max-request-size: 50MB`
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+```
+
+**API 验证**（待执行）:
+```bash
+# 1. 登录获取令牌
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"moveon","password":"moveon123"}'
+
+# 2. 上传文档
+curl -X POST http://localhost:8080/api/documents/upload \
+  -H "Authorization: Bearer <access_token>" \
+  -F "file=@test.txt"
+
+# 3. 获取文档列表
+curl http://localhost:8080/api/documents \
+  -H "Authorization: Bearer <access_token>"
+
+# 4. 获取文档详情
+curl http://localhost:8080/api/documents/1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### 已知问题
+
+1. 当前用户 ID 通过占位实现返回固定值 `1L`，后续会通过 JWT 认证过滤器提取真实用户 ID
+2. 文档上传后状态为 PENDING，需要阶段 6 实现异步解析
+
+### 下一步
+
+阶段 6：文档解析与内容入库
+- 建立文档解析任务链路
+- 实现文本提取（TXT, PDF, DOCX）
+- 存储解析结果与基础片段
+
+---
+
+## 阶段 6：文档解析与内容入库 - ✅ 已完成
+
+**完成日期**: 2026-03-29
+
+### 完成的工作
+
+#### 6.1 建立文档解析任务链路
+
+- [x] 启用 Spring `@EnableAsync` 异步支持
+- [x] 创建 `DocumentParsingService` 异步解析编排服务
+- [x] 实现状态流转：PENDING → PARSING → PARSED（或 FAILED）
+- [x] 上传后自动触发异步解析
+- [x] 解析失败时记录错误信息到文档元数据
+- [x] 支持手动重新解析（重试）接口 `POST /api/documents/{id}/parse`
+
+#### 6.2 实现文本提取
+
+- [x] 创建 `DocumentParserService` 文本提取服务
+- [x] 使用 Apache Tika 统一解析 PDF、DOCX 格式
+- [x] TXT 文件直接使用 UTF-8 编码读取
+- [x] 文本清理：规范化换行符、压缩多余空行、去除首尾空白
+- [x] 空内容检测与异常抛出
+
+#### 6.3 存储解析结果与基础片段
+
+- [x] 创建 `document_fragments` 表（id, document_id, fragment_index, content, char_count, created_at, updated_at）
+- [x] 创建 `DocumentFragment` 实体类
+- [x] 创建 `DocumentFragmentRepository` 数据访问层
+- [x] 实现文本分段逻辑：每个片段 4 段，相邻片段重叠 1 段
+- [x] 片段按序号排序，可按顺序重组原文
+- [x] 支持重新解析时清除旧片段
+- [x] 新增片段查询接口 `GET /api/documents/{id}/fragments`
+
+**文档片段表结构**:
+```sql
+CREATE TABLE document_fragments (
+    id BIGSERIAL PRIMARY KEY,
+    document_id BIGINT NOT NULL,
+    fragment_index INT NOT NULL,
+    content TEXT NOT NULL,
+    char_count INT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_fragments_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+);
+```
+
+### 创建的代码
+
+**新增服务**:
+- `DocumentParserService.java` - 文本提取与分段服务
+- `DocumentParsingService.java` - 异步解析编排服务（下载文件→提取文本→分段→更新状态）
+
+**新增实体**:
+- `DocumentFragment.java` - 文档片段实体
+
+**新增 Repository**:
+- `DocumentFragmentRepository.java` - 片段数据访问层
+
+**新增 DTO**:
+- `DocumentFragmentResponse.java` - 片段查询响应
+
+**新增测试**:
+- `DocumentParserServiceTest.java` - 解析服务测试（11 个测试用例）
+
+**修改的文件**:
+- `MoveonBotApplication.java` - 添加 `@EnableAsync`
+- `DocumentService.java` - 添加 `uploadAndParseDocument` 方法，注入 `DocumentParsingService`
+- `DocumentController.java` - 上传触发解析，新增重新解析和片段查询接口
+- `DocumentServiceTest.java` - 更新构造函数参数
+- `DocumentControllerTest.java` - 添加 `DocumentParsingService` MockBean
+- `01-init.sql` - 添加 `document_fragments` 表
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+```
+
+**API 验证**（待执行）:
+```bash
+# 1. 登录获取令牌
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"moveon","password":"moveon123"}'
+
+# 2. 上传文档（自动触发异步解析）
+curl -X POST http://localhost:8080/api/documents/upload \
+  -H "Authorization: Bearer <access_token>" \
+  -F "file=@test.txt"
+
+# 3. 等待解析完成后查看文档状态
+curl http://localhost:8080/api/documents/1 \
+  -H "Authorization: Bearer <access_token>"
+
+# 4. 查看解析后的片段
+curl http://localhost:8080/api/documents/1/fragments \
+  -H "Authorization: Bearer <access_token>"
+
+# 5. 手动重新解析（用于失败重试）
+curl -X POST http://localhost:8080/api/documents/1/parse \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### 下一步
+
+阶段 7：向量化与检索准备
+- 建立向量记录结构
+- 实现向量生成流程
+- 实现基础语义检索
+
+---
+
+---
+
+## 阶段 7：向量化与检索准备 - ✅ 已完成
+
+**完成日期**: 2026-03-29
+
+### 完成的工作
+
+#### 7.1 建立向量记录结构
+
+- [x] 创建 `document_vectors` 表（id, fragment_id, document_id, user_id, embedding vector(1536), status, created_at, updated_at）
+- [x] 创建 `DocumentVector` 实体类
+- [x] 创建 `DocumentVectorStatus` 枚举（PENDING, COMPLETED, FAILED）
+- [x] 创建 `DocumentVectorRepository` 数据访问层
+- [x] 创建 `VectorType` Hibernate 自定义类型（float[] ↔ pgvector 互转）
+- [x] 更新数据库初始化脚本 `01-init.sql`
+
+#### 7.2 实现向量生成流程
+
+- [x] 创建 `AiConfig` 配置类（LangChain4j OpenAI Embedding 模型）
+- [x] 创建 `EmbeddingService` 向量生成服务（封装 LangChain4j 调用）
+- [x] 创建 `DocumentEmbeddingService` 异步向量化编排服务
+- [x] 实现状态流转：PARSED → EMBEDDING → COMPLETED（或 FAILED）
+- [x] 解析完成后自动触发向量化
+- [x] 支持手动重新向量化 `POST /api/documents/{id}/embed`
+- [x] 向量化失败时记录错误信息，支持重试
+- [x] 模型未配置时优雅降级（不影响基础功能）
+
+**配置说明**:
+- 通过 OpenAI 兼容接口对接阿里云千问 Embedding
+- 默认模型：text-embedding-v2（1536 维）
+- 配置项：ai.api-key、ai.base-url、ai.embedding-model
+
+#### 7.3 实现基础语义检索
+
+- [x] 创建 `SemanticSearchService` 语义检索服务
+- [x] 使用 pgvector 余弦距离（`<=>` 操作符）进行相似度检索
+- [x] 创建 `SearchResult` DTO
+- [x] 实现用户隔离（只检索当前用户的文档）
+- [x] 添加语义检索接口 `GET /api/documents/search?query=xxx&topK=5`
+
+### 创建的代码
+
+**新增文件 (8 个)**:
+- `infra/config/VectorType.java` - Hibernate 自定义向量类型
+- `infra/config/AiConfig.java` - AI 模型配置
+- `document/entity/DocumentVector.java` - 向量实体
+- `document/entity/DocumentVectorStatus.java` - 向量状态枚举
+- `document/repository/DocumentVectorRepository.java` - 向量数据访问层
+- `document/service/EmbeddingService.java` - 向量生成服务
+- `document/service/DocumentEmbeddingService.java` - 向量化编排服务
+- `document/service/SemanticSearchService.java` - 语义检索服务
+- `document/dto/SearchResult.java` - 检索结果 DTO
+
+**修改的文件**:
+- `pom.xml` - PostgreSQL 驱动改为 compile scope
+- `infra/docker/init-db/01-init.sql` - 添加 document_vectors 表
+- `document/service/DocumentParsingService.java` - 解析后触发向量化
+- `document/controller/DocumentController.java` - 添加向量化重试和语义检索接口
+- `application.yml` / `application-dev.yml` - 添加 AI base-url 配置
+- `DocumentControllerTest.java` - 添加 MockBean
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+```
+
+### 下一步
+
+阶段 8：基础 RAG 问答
+- 建立最小问答链路（LangChain4j + 千问大模型）
+- 控制问答范围与提示约束
+- 记录问答日志与可追溯信息
+
+---
+
 ## 待办
 
-- [ ] 阶段 5：文档上传与存储
-- [ ] 阶段 6：文档解析与内容入库
-- [ ] 阶段 7：向量化与检索准备
 - [ ] 阶段 8：基础 RAG 问答
 - [ ] 阶段 9：任务与待办管理
 - [ ] 阶段 10：提醒、观测与收尾验收

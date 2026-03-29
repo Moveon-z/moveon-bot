@@ -15,6 +15,13 @@ spring:
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
 
+  # Multipart file upload
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      enabled: true
+
 # Server configuration
 server:
   port: 8080
@@ -29,6 +36,11 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: tag
     tags-sorter: alpha
+
+# MVC configuration to fix static resource interference
+spring.mvc:
+  # Only serve static resources from /static/** path
+  static-path-pattern: /static/**
 
 # Actuator configuration
 management:
@@ -55,13 +67,15 @@ logging:
   level:
     root: INFO
     com.moveon: DEBUG
-    org.springframework.web: INFO
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation: DEBUG
+    org.springframework.web.servlet.handler: DEBUG
+    org.springframework.beans.factory.support: DEBUG
     org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-  # File logging configuration
   logback:
     rollingpolicy:
       max-file-size: 10MB
@@ -97,7 +111,7 @@ spring.jpa:
 
 # JWT configuration
 jwt:
-  secret: ${JWT_SECRET:change-me-in-production}
+  secret: ${JWT_SECRET:moveon-bot-jwt-secret-key-must-be-at-least-32-bytes}
   expiration-ms: 1800000  # 30 minutes
   refresh-expiration-ms: 604800000  # 7 days
 
@@ -105,4 +119,5 @@ jwt:
 ai:
   api-key: ${AI_API_KEY:}
   model-provider: ${AI_MODEL_PROVIDER:aliyun}
-  embedding-model: ${AI_EMBEDDING_MODEL:ali-text-embedding}
+  base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+  embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-v2}
