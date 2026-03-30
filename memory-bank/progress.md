@@ -853,8 +853,156 @@ mvn test
 
 ---
 
+## 阶段 8：基础 RAG 问答 - ✅ 已完成
+
+**完成日期**: 2026-03-30
+
+### 完成的工作
+
+#### 8.1 建立最小问答链路
+
+- [x] 创建 `RagService` RAG 编排服务（手动编排：检索 → 构建提示 → 调用 ChatModel → 返回答案）
+- [x] 使用 OpenAiChatModel 调用阿里云千问大模型（Qwen3.5-plus via DashScope）
+- [x] 配置支持快速切换不同大模型厂商（已通过 application.yml 配置）
+- [x] 问答流程：提问 → 语义检索 → 构建系统提示 → 生成答案 → 附带引用
+- [x] 创建 `AssistantController` 问答接口 `POST /api/assistant/ask`
+- [x] 创建 `AskRequest`、`AskResponse`、`Citation` DTO
+
+**问答流程**:
+```
+用户提问 → SemanticSearchService 检索相关片段 → 过滤低分结果
+         → 构建 RAG 系统提示 → ChatModel 生成答案 → 返回答案 + 引用
+```
+
+#### 8.2 控制问答范围与提示约束
+
+- [x] 实现 RAG 系统提示模板，严格约束模型行为
+- [x] 要求模型仅基于检索到的参考资料回答
+- [x] 引用时注明来源编号（如 [来源1]）
+- [x] 资料不足时明确返回"无法回答"提示
+- [x] 实现最低相似度阈值过滤（默认 0.3，可配置）
+- [x] 低于阈值的结果不传给模型，直接返回"无法回答"
+- [x] 创建 `RagConfig` 配置类，参数可外部化
+
+**系统提示约束规则**:
+1. 仅基于参考资料回答，不得使用外部知识或编造信息
+2. 引用具体信息时注明来源编号
+3. 资料不足时必须说明无法回答，不允许猜测
+4. 不要在资料基础上推断或扩展
+5. 不同来源信息冲突时，指出冲突并分别引用
+
+#### 8.3 记录问答日志与可追溯信息
+
+- [x] 创建 `qa_logs` 审计日志表
+- [x] 创建 `QaLog` JPA 实体
+- [x] 创建 `QaLogRepository` 数据访问层
+- [x] 每次问答自动记录：用户 ID、问题、答案、命中文档/片段 ID、相似度、响应时间、状态
+- [x] 超长答案自动截断（日志中不保存完整原文）
+- [x] 失败时记录错误信息
+- [x] 日志保存失败不影响主流程
+
+**审计日志表结构**:
+```sql
+CREATE TABLE qa_logs (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    question VARCHAR(1000) NOT NULL,
+    answer TEXT,
+    answer_truncated BOOLEAN NOT NULL DEFAULT FALSE,
+    hit_document_ids VARCHAR(500),
+    hit_fragment_ids VARCHAR(500),
+    hit_count INT NOT NULL DEFAULT 0,
+    top_score DOUBLE PRECISION,
+    response_time_ms BIGINT,
+    status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+    error_message VARCHAR(1000),
+    model_name VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 创建的代码
+
+**新增文件 (9 个)**:
+
+**Entity**:
+- `assistant/entity/QaLog.java` - 问答审计日志实体
+
+**Repository**:
+- `assistant/repository/QaLogRepository.java` - 审计日志数据访问层
+
+**DTO**:
+- `assistant/dto/AskRequest.java` - 问答请求 DTO
+- `assistant/dto/AskResponse.java` - 问答响应 DTO（含答案、引用列表、响应时间）
+- `assistant/dto/Citation.java` - 引用信息 DTO（文档 ID、文件名、片段序号、相似度）
+
+**Service**:
+- `assistant/service/RagService.java` - RAG 编排服务（检索 + 提示 + LLM + 审计）
+
+**Controller**:
+- `assistant/controller/AssistantController.java` - 问答控制器
+
+**Config**:
+- `assistant/config/RagConfig.java` - RAG 参数配置
+
+**Test**:
+- `assistant/service/RagServiceTest.java` - RAG 服务单元测试（10 个用例）
+- `assistant/controller/AssistantControllerTest.java` - 问答控制器测试（3 个用例）
+
+**修改的文件**:
+- `infra/docker/init-db/01-init.sql` - 添加 qa_logs 表
+- `src/main/resources/application.yml` - 添加 rag 配置段
+
+### 配置更新
+
+**application.yml** 添加:
+```yaml
+rag:
+  default-top-k: 5
+  max-top-k: 20
+  max-question-length: 1000
+  max-answer-length: 4000
+  min-score-threshold: 0.3
+```
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 60, Failures: 0, Errors: 0, Skipped: 0
+```
+
+**API 验证**（待执行）:
+```bash
+# 1. 登录获取令牌
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"moveon","password":"moveon123"}'
+
+# 2. 对已上传文档提问
+curl -X POST http://localhost:8080/api/assistant/ask \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"文档中提到了什么内容？"}'
+
+# 3. 提问无相关文档的问题（应返回"无法回答"）
+curl -X POST http://localhost:8080/api/assistant/ask \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"量子物理是什么？"}'
+```
+
+### 下一步
+
+阶段 9：任务与待办管理
+- 建立任务表结构
+- 实现任务 CRUD
+- 加入基础筛选能力
+
+---
+
 ## 待办
 
-- [ ] 阶段 8：基础 RAG 问答
 - [ ] 阶段 9：任务与待办管理
 - [ ] 阶段 10：提醒、观测与收尾验收

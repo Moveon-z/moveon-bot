@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS document_vectors (
     fragment_id BIGINT NOT NULL,
     document_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
-    embedding vector(1536),
+    embedding vector(1024),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -88,6 +88,28 @@ CREATE INDEX IF NOT EXISTS idx_vectors_document_id ON document_vectors(document_
 CREATE INDEX IF NOT EXISTS idx_vectors_user_id ON document_vectors(user_id);
 CREATE INDEX IF NOT EXISTS idx_vectors_status ON document_vectors(status);
 
+-- Create qa_logs table (问答审计日志)
+CREATE TABLE IF NOT EXISTS qa_logs (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    question VARCHAR(1000) NOT NULL,
+    answer TEXT,
+    answer_truncated BOOLEAN NOT NULL DEFAULT FALSE,
+    hit_document_ids VARCHAR(500),
+    hit_fragment_ids VARCHAR(500),
+    hit_count INT NOT NULL DEFAULT 0,
+    top_score DOUBLE PRECISION,
+    response_time_ms BIGINT,
+    status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+    error_message VARCHAR(1000),
+    model_name VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_qa_logs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_qa_logs_user_id ON qa_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_qa_logs_created_at ON qa_logs(created_at);
+
 -- Log initialization
 DO $$
 BEGIN
@@ -97,5 +119,6 @@ BEGIN
     RAISE NOTICE 'documents table created';
     RAISE NOTICE 'document_fragments table created';
     RAISE NOTICE 'document_vectors table created';
+    RAISE NOTICE 'qa_logs table created';
     RAISE NOTICE 'Initial admin user created (username: moveon, password: moveon123)';
 END $$;

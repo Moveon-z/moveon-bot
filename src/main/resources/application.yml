@@ -115,6 +115,14 @@ jwt:
   expiration-ms: 1800000  # 30 minutes
   refresh-expiration-ms: 604800000  # 7 days
 
+# RAG configuration
+rag:
+  default-top-k: ${RAG_DEFAULT_TOP_K:5}
+  max-top-k: ${RAG_MAX_TOP_K:20}
+  max-question-length: ${RAG_MAX_QUESTION_LENGTH:1000}
+  max-answer-length: ${RAG_MAX_ANSWER_LENGTH:4000}
+  min-score-threshold: ${RAG_MIN_SCORE_THRESHOLD:0.3}
+
 # AI configuration
 ai:
   # Embedding model (SiliconFlow BAAI/bge-m3, free)
