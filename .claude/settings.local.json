@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Read(//d D:/Dev/codeProject/java/**)",
-      "Bash(mvn clean:*)"
+      "Bash(mvn clean:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(mvn test:*)",
+      "Bash(powershell -Command \"Get-Process java -ErrorAction SilentlyContinue | Where-Object { $_MainWindowTitle -like ''*java*'' -or $_CommandLine -like ''*spring*'' } | ForEach-Object { Stop-Process -Id $_Id -Force }\")",
+      "Bash(powershell -Command \"Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzM4NCJ9.eyJyb2xlIjoiQURNSU4iLCJ1c2VySWQiOjEsInN1YiI6Im1vdmVvbiIsImlhdCI6MTc3NDU4NDY2OCwiZXhwIjoxNzc0NTg2NDY4fQ.IdEBd5sxH84VoIrlObAASvT9o5CkYh6pL9Rq3s7iYyIYpJWgKx0z1O8FvGcUo5jD9A\")",
+      "Bash(mvn compile:*)",
+      "WebSearch"
     ]
   }
 }

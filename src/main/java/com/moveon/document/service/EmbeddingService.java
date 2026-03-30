@@ -29,11 +29,11 @@ public class EmbeddingService {
      * 将文本转为向量
      *
      * @param text 输入文本
-     * @return 向量数组（1536 维）
+     * @return 向量数组（1024 维）
      */
     public float[] embed(String text) {
         if (embeddingModel == null) {
-            throw new IllegalStateException("Embedding 模型未配置，请设置 ai.api-key 环境变量");
+            throw new IllegalStateException("Embedding 模型未配置，请设置 AI_EMBEDDING_API_KEY 环境变量");
         }
 
         log.debug("Generating embedding for text (length={})", text.length());

@@ -1,6 +1,7 @@
 package com.moveon.infra.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.moveon.auth.service.JwtService;
 import com.moveon.infra.service.HealthCheckService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.Map;
 
@@ -31,6 +34,12 @@ class HealthControllerTest {
 
     @MockBean
     private HealthCheckService healthCheckService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     @Test
     void testHealthEndpoint() throws Exception {

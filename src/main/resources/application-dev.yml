@@ -43,12 +43,8 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-# AI configuration for local development
-ai:
-  api-key: ${AI_API_KEY:}
-  model-provider: ${AI_MODEL_PROVIDER:aliyun}
-  base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
-  embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-v2}
+# AI configuration inherits from application.yml
+# Override via environment variables if needed: AI_EMBEDDING_API_KEY, AI_CHAT_API_KEY
 
 # JWT configuration for local development
 jwt:

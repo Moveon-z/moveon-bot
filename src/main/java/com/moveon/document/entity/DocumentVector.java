@@ -57,8 +57,11 @@ public class DocumentVector {
     /**
      * 向量嵌入（1536 维，对应阿里云 Text Embedding 模型）
      */
+    /**
+     * 向量嵌入（1024 维，对应 BAAI/bge-m3 模型）
+     */
     @Type(VectorType.class)
-    @Column(name = "embedding", columnDefinition = "vector(1536)")
+    @Column(name = "embedding", columnDefinition = "vector(1024)")
     private float[] embedding;
 
     /**

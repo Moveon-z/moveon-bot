@@ -115,9 +115,15 @@ jwt:
   expiration-ms: 1800000  # 30 minutes
   refresh-expiration-ms: 604800000  # 7 days
 
-# AI configuration (placeholder)
+# AI configuration
 ai:
-  api-key: ${AI_API_KEY:}
-  model-provider: ${AI_MODEL_PROVIDER:aliyun}
-  base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
-  embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-v2}
+  # Embedding model (SiliconFlow BAAI/bge-m3, free)
+  embedding:
+    api-key: ${AI_EMBEDDING_API_KEY:${AI_API_KEY:sk-vgogjxdidxpqbtfgbmsqtdtjtanxrpxtcitnhdivbpxuxdtt}}
+    base-url: ${AI_EMBEDDING_BASE_URL:https://api.siliconflow.cn/v1}
+    model: ${AI_EMBEDDING_MODEL:BAAI/bge-m3}
+  # Chat model (for RAG Q&A, can be a different provider)
+  chat:
+    api-key: ${AI_CHAT_API_KEY:${AI_API_KEY:sk-sp-db466d1b77bd4170886d00f3147b7d79}}
+    base-url: ${AI_CHAT_BASE_URL:https://coding.dashscope.aliyuncs.com/v1}
+    model: ${AI_CHAT_MODEL:qwen3.5-plus}

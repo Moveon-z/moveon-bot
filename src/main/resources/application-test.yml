@@ -43,8 +43,9 @@ logging:
     com.moveon: DEBUG
 
 # JWT configuration for tests
+# Note: This secret must be at least 256 bits (32 bytes) for HS256
 jwt:
-  secret: test-secret-key
+  secret: "this-is-a-very-long-and-secure-secret-key-for-jwt-testing-purpose-only-must-be-at-least-256-bits-long-hmac-sha-algorithm-compliant-key-size-required-for-rfc7518"
   expiration-ms: 1800000
   refresh-expiration-ms: 604800000
 

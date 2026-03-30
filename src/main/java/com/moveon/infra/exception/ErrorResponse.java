@@ -21,11 +21,11 @@ public class ErrorResponse {
     private String message;
     private String path;
 
-    public static ErrorResponse of(Integer status, String error, String message, String path) {
-        return new ErrorResponse(Instant.now(), status, error, null, message, path);
-    }
-
     public static ErrorResponse of(Integer status, String error, String code, String message, String path) {
         return new ErrorResponse(Instant.now(), status, error, code, message, path);
+    }
+
+    public static ErrorResponse of(Integer status, String error, String message, String path) {
+        return new ErrorResponse(Instant.now(), status, error, null, message, path);
     }
 }

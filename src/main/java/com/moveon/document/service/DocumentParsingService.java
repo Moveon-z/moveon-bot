@@ -83,7 +83,7 @@ public class DocumentParsingService {
             updateDocumentStatus(document, DocumentStatus.PARSED, null);
             log.info("Document {} parsed successfully", documentId);
 
-            // 5. 异步触发向量化
+            // 5. 触发向量化
             documentEmbeddingService.embedDocumentAsync(documentId);
 
         } catch (Exception e) {
