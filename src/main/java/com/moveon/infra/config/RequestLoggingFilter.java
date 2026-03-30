@@ -95,11 +95,16 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // Skip logging for static resources and health checks
+        // Skip logging for static resources, health checks, and SSE streams
         String path = request.getServletPath();
-        return path.startsWith("/swagger-ui") ||
-               path.startsWith("/v3/api-docs") ||
-               path.startsWith("/actuator") ||
-               path.equals("/health");
+        if (path.startsWith("/swagger-ui") ||
+            path.startsWith("/v3/api-docs") ||
+            path.startsWith("/actuator") ||
+            path.equals("/health")) {
+            return true;
+        }
+        // Skip for SSE streaming endpoints (ContentCachingResponseWrapper buffers output)
+        String accept = request.getHeader("Accept");
+        return accept != null && accept.contains("text/event-stream");
     }
 }

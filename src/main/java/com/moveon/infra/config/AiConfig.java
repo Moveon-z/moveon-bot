@@ -2,6 +2,7 @@ package com.moveon.infra.config;
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -39,6 +40,20 @@ public class AiConfig {
             @Value("${ai.chat.model:Qwen/Qwen3-8B}") String modelName) {
         log.info("Initializing Chat model: model={}, baseUrl={}", modelName, baseUrl);
         return OpenAiChatModel.builder()
+                .apiKey(apiKey)
+                .baseUrl(baseUrl)
+                .modelName(modelName)
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnExpression("!'${ai.chat.api-key:}'.isEmpty()")
+    public OpenAiStreamingChatModel streamingChatModel(
+            @Value("${ai.chat.api-key}") String apiKey,
+            @Value("${ai.chat.base-url:https://api.siliconflow.cn/v1}") String baseUrl,
+            @Value("${ai.chat.model:Qwen/Qwen3-8B}") String modelName) {
+        log.info("Initializing Streaming Chat model: model={}, baseUrl={}", modelName, baseUrl);
+        return OpenAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .modelName(modelName)
