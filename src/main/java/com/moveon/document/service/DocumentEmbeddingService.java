@@ -8,6 +8,7 @@ import com.moveon.document.entity.DocumentVectorStatus;
 import com.moveon.document.repository.DocumentFragmentRepository;
 import com.moveon.document.repository.DocumentRepository;
 import com.moveon.document.repository.DocumentVectorRepository;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -47,6 +48,7 @@ public class DocumentEmbeddingService {
      * 同步向量化文档（用于手动触发重新向量化）
      */
     @Transactional
+    @Timed(value = "moveon.document.embedding", description = "Document embedding time")
     public void embedDocument(Long documentId) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentId));

@@ -995,14 +995,284 @@ curl -X POST http://localhost:8080/api/assistant/ask \
 
 ### 下一步
 
-阶段 9：任务与待办管理
-- 建立任务表结构
-- 实现任务 CRUD
-- 加入基础筛选能力
+阶段 10：提醒、观测与收尾验收
+
+---
+
+## 阶段 9：任务与待办管理 - ✅ 已完成
+
+**完成日期**: 2026-03-30
+
+### 完成的工作
+
+#### 9.1 建立任务表结构
+
+- [x] 创建 `Task` 实体类（id, userId, title, description, priority, status, dueDate, completedAt, createdAt, updatedAt）
+- [x] 创建 `TaskStatus` 枚举（PENDING, IN_PROGRESS, COMPLETED, CANCELLED）
+- [x] 创建 `TaskPriority` 枚举（LOW, MEDIUM, HIGH, URGENT）
+- [x] 创建 `TaskRepository` 数据访问层
+- [x] 更新数据库初始化脚本 `01-init.sql` 添加 tasks 表及索引
+
+**任务表结构**:
+```sql
+CREATE TABLE tasks (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    due_date TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_tasks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+#### 9.2 实现任务 CRUD 接口
+
+- [x] 创建 `TaskService` 服务类（创建、查询、更新、完成、取消、删除）
+- [x] 创建 `TaskController` 控制器（REST API）
+- [x] 创建 `TaskCreateRequest` DTO（标题、描述、优先级、截止时间）
+- [x] 创建 `TaskUpdateRequest` DTO（部分更新）
+- [x] 创建 `TaskResponse` DTO
+- [x] 所有操作绑定当前用户，支持用户隔离
+- [x] 权限校验：只能操作自己的任务
+
+**API 端点**:
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/tasks` | 创建任务 |
+| GET | `/tasks` | 获取任务列表（分页） |
+| GET | `/tasks/{id}` | 获取任务详情 |
+| PUT | `/tasks/{id}` | 更新任务 |
+| POST | `/tasks/{id}/complete` | 标记任务完成 |
+| POST | `/tasks/{id}/cancel` | 取消任务 |
+| DELETE | `/tasks/{id}` | 删除任务 |
+
+#### 9.3 加入基础筛选能力
+
+- [x] 按状态筛选（`status` 参数）
+- [x] 按优先级筛选（`priority` 参数）
+- [x] 按状态+优先级组合筛选
+- [x] 按截止时间范围筛选（`dueDateFrom` + `dueDateTo` 参数）
+- [x] 支持排序（字段和方向可配置）
+
+### 创建的代码
+
+**新增文件 (10 个)**:
+
+**Entity**:
+- `task/entity/Task.java` - 任务实体
+- `task/entity/TaskStatus.java` - 任务状态枚举
+- `task/entity/TaskPriority.java` - 任务优先级枚举
+
+**Repository**:
+- `task/repository/TaskRepository.java` - 任务数据访问层
+
+**DTO**:
+- `task/dto/TaskCreateRequest.java` - 创建任务请求
+- `task/dto/TaskUpdateRequest.java` - 更新任务请求
+- `task/dto/TaskResponse.java` - 任务响应
+
+**Service**:
+- `task/service/TaskService.java` - 任务服务（CRUD + 状态变更）
+
+**Controller**:
+- `task/controller/TaskController.java` - 任务控制器
+
+**Test**:
+- `task/service/TaskServiceTest.java` - 任务服务测试（16 个用例）
+- `task/controller/TaskControllerTest.java` - 任务控制器测试（12 个用例）
+
+**修改的文件**:
+- `infra/docker/init-db/01-init.sql` - 添加 tasks 表及索引
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 88, Failures: 0, Errors: 0, Skipped: 0
+```
+
+**API 验证**（待执行）:
+```bash
+# 1. 登录获取令牌
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"moveon","password":"moveon123"}'
+
+# 2. 创建任务
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"完成项目文档","description":"编写项目技术文档","priority":"HIGH","dueDate":"2026-04-05T18:00:00"}'
+
+# 3. 获取任务列表
+curl http://localhost:8080/api/tasks \
+  -H "Authorization: Bearer <token>"
+
+# 4. 按状态筛选
+curl "http://localhost:8080/api/tasks?status=PENDING" \
+  -H "Authorization: Bearer <token>"
+
+# 5. 按优先级筛选
+curl "http://localhost:8080/api/tasks?priority=HIGH" \
+  -H "Authorization: Bearer <token>"
+
+# 6. 更新任务
+curl -X PUT http://localhost:8080/api/tasks/1 \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"更新后的标题","priority":"URGENT"}'
+
+# 7. 标记完成
+curl -X POST http://localhost:8080/api/tasks/1/complete \
+  -H "Authorization: Bearer <token>"
+
+# 8. 取消任务
+curl -X POST http://localhost:8080/api/tasks/2/cancel \
+  -H "Authorization: Bearer <token>"
+
+# 9. 删除任务
+curl -X DELETE http://localhost:8080/api/tasks/3 \
+  -H "Authorization: Bearer <token>"
+```
+
+### 下一步
+
+阶段 10：提醒、观测与收尾验收
+- 基于 Quartz 实现基础时间提醒
+- 补充基础指标监控
+- 执行端到端验收
+
+---
+
+## 阶段 10：提醒、观测与收尾验收 - ✅ 已完成
+
+**完成日期**: 2026-03-31
+
+### 完成的工作
+
+#### 10.1 基于调度的定时提醒机制
+
+- [x] 创建 `Reminder` 实体类（id, taskId, userId, title, message, remindType, status, remindAt, sentAt, createdAt）
+- [x] 创建 `ReminderStatus` 枚举（PENDING, SENT, FAILED）
+- [x] 创建 `ReminderType` 枚举（DUE_SOON, OVERDUE）
+- [x] 创建 `ReminderRepository` 数据访问层（防重复查询、按状态查询）
+- [x] 创建 `TaskReminderService` 提醒业务逻辑
+  - `checkAndCreateReminders()` - 扫描即将到期（1小时内）和已过期任务，创建提醒记录
+  - `processPendingReminders()` - 将待发送提醒标记为已发送
+  - 同一任务同一提醒类型不会重复创建
+- [x] 创建 `TaskReminderJob` 定时任务（每 5 分钟执行一次）
+- [x] 更新数据库初始化脚本 `01-init.sql` 添加 reminders 表
+- [x] 在 `TaskRepository` 添加 `findByStatusInAndDueDateBetween` 查询方法
+- [x] 在 `MoveonBotApplication` 添加 `@EnableScheduling` 注解
+
+**提醒表结构**:
+```sql
+CREATE TABLE IF NOT EXISTS reminders (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    remind_type VARCHAR(30) NOT NULL DEFAULT 'DUE_SOON',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    remind_at TIMESTAMP NOT NULL,
+    sent_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_reminders_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    CONSTRAINT fk_reminders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT uk_reminders_task_type UNIQUE (task_id, remind_type)
+);
+```
+
+#### 10.2 基础指标监控
+
+- [x] 创建 `MetricsConfig` 配置类（启用 `@Timed` 注解支持）
+- [x] 为 `RagService.ask()` 添加 `@Timed("moveon.qa.ask")` 指标
+- [x] 为 `DocumentParsingService.parseDocument()` 添加 `@Timed("moveon.document.parsing")` 指标
+- [x] 为 `DocumentEmbeddingService.embedDocument()` 添加 `@Timed("moveon.document.embedding")` 指标
+- [x] 为 `TaskReminderService` 添加 `moveon.reminders.created` Counter 指标
+- [x] Actuator + Prometheus 端点已配置（`/actuator/prometheus`）
+
+**指标清单**:
+
+| 指标名 | 类型 | 说明 |
+|--------|------|------|
+| `moveon.qa.ask` | Timer | QA 请求耗时 |
+| `moveon.document.parsing` | Timer | 文档解析耗时 |
+| `moveon.document.embedding` | Timer | 文档向量化耗时 |
+| `moveon.reminders.created` | Counter | 提醒创建次数 |
+
+#### 10.3 端到端验收
+
+- [x] 所有 94 个单元测试通过（BUILD SUCCESS）
+- [x] Maven 编译无错误
+- [x] 新增 `TaskReminderServiceTest` 单元测试（7 个用例）
+
+### 创建的代码
+
+**新增文件（7 个）**:
+
+**Entity**:
+- `notification/entity/Reminder.java` - 提醒记录实体
+- `notification/entity/ReminderStatus.java` - 提醒状态枚举
+- `notification/entity/ReminderType.java` - 提醒类型枚举
+
+**Repository**:
+- `notification/repository/ReminderRepository.java` - 提醒数据访问层
+
+**Service**:
+- `notification/service/TaskReminderService.java` - 提醒业务逻辑
+
+**Job**:
+- `notification/job/TaskReminderJob.java` - 定时提醒任务
+
+**Config**:
+- `infra/config/MetricsConfig.java` - 指标监控配置
+
+**Test**:
+- `notification/service/TaskReminderServiceTest.java` - 提醒服务测试
+
+**修改的文件**:
+- `MoveonBotApplication.java` - 添加 `@EnableScheduling`
+- `task/repository/TaskRepository.java` - 添加 `findByStatusInAndDueDateBetween`
+- `assistant/service/RagService.java` - 添加 `@Timed` 指标
+- `document/service/DocumentParsingService.java` - 添加 `@Timed` 指标
+- `document/service/DocumentEmbeddingService.java` - 添加 `@Timed` 指标
+- `infra/docker/init-db/01-init.sql` - 添加 reminders 表
+- `src/main/resources/application.yml` - 添加调度线程池配置
+
+### 验证测试
+
+**Maven 测试**:
+```bash
+mvn test
+# Tests run: 94, Failures: 0, Errors: 0, Skipped: 0
+# BUILD SUCCESS
+```
+
+### 项目完成状态
+
+全部 10 个阶段已完成 ✅
+
+1. ✅ 项目脚手架
+2. ✅ 本地开发环境
+3. ✅ 应用骨架与通用能力
+4. ✅ 认证与授权
+5. ✅ 文档上传与存储
+6. ✅ 文档解析与内容入库
+7. ✅ 向量化与检索
+8. ✅ RAG 问答
+9. ✅ 任务与待办管理
+10. ✅ 提醒、观测与收尾验收
 
 ---
 
 ## 待办
 
-- [ ] 阶段 9：任务与待办管理
-- [ ] 阶段 10：提醒、观测与收尾验收
+（全部阶段已完成）

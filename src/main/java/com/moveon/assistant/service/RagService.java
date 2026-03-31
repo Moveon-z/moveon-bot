@@ -8,6 +8,7 @@ import com.moveon.assistant.repository.QaLogRepository;
 import com.moveon.document.dto.SearchResult;
 import com.moveon.document.service.SemanticSearchService;
 import com.moveon.infra.exception.BusinessException;
+import io.micrometer.core.annotation.Timed;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -54,6 +55,8 @@ public class RagService {
 
     private static final String NO_CONTEXT_ANSWER = "根据现有文档资料，我无法回答这个问题，因为没有找到与您的问题相关的文档内容。";
 
+    @Timed(value = "moveon.qa.ask", description = "QA request duration")
+    @Timed(value = "moveon.qa.ask", description = "QA ask request duration")
     public AskResponse ask(Long userId, String question, Integer topK) {
         if (chatModel == null) {
             throw new BusinessException("CHAT_MODEL_UNAVAILABLE", "问答服务暂不可用，请检查 AI 配置");

@@ -42,6 +42,12 @@ spring.mvc:
   # Only serve static resources from /static/** path
   static-path-pattern: /static/**
 
+# Scheduling configuration
+spring.task.scheduling:
+  pool:
+    size: 2
+  thread-name-prefix: scheduling-
+
 # Actuator configuration
 management:
   endpoints:

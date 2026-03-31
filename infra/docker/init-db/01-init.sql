@@ -110,6 +110,50 @@ CREATE TABLE IF NOT EXISTS qa_logs (
 CREATE INDEX IF NOT EXISTS idx_qa_logs_user_id ON qa_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_qa_logs_created_at ON qa_logs(created_at);
 
+-- Create tasks table (任务与待办)
+CREATE TABLE IF NOT EXISTS tasks (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    due_date TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_tasks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create indexes for tasks
+CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+
+-- Create reminders table (任务提醒)
+CREATE TABLE IF NOT EXISTS reminders (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    remind_type VARCHAR(30) NOT NULL DEFAULT 'DUE_SOON',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    remind_at TIMESTAMP NOT NULL,
+    sent_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_reminders_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    CONSTRAINT fk_reminders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT uk_reminders_task_type UNIQUE (task_id, remind_type)
+);
+
+-- Create indexes for reminders
+CREATE INDEX IF NOT EXISTS idx_reminders_task_id ON reminders(task_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_user_id ON reminders(user_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
+
 -- Log initialization
 DO $$
 BEGIN
@@ -120,5 +164,7 @@ BEGIN
     RAISE NOTICE 'document_fragments table created';
     RAISE NOTICE 'document_vectors table created';
     RAISE NOTICE 'qa_logs table created';
+    RAISE NOTICE 'tasks table created';
+    RAISE NOTICE 'reminders table created';
     RAISE NOTICE 'Initial admin user created (username: moveon, password: moveon123)';
 END $$;

@@ -6,6 +6,7 @@ import com.moveon.document.entity.DocumentStatus;
 import com.moveon.document.repository.DocumentRepository;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,7 @@ public class DocumentParsingService {
      * @param documentId 文档 ID
      */
     @Transactional
+    @Timed(value = "moveon.document.parsing", description = "Document parsing time")
     public void parseDocument(Long documentId) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentId));
